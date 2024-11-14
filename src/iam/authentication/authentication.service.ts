@@ -13,6 +13,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { BcryptService } from '../hashing/bcrypt.hash';
 import { ActiveUserDTO } from './dto/activeUser.dto';
 import { JwtService } from '@nestjs/jwt';
+import { LoginDto } from 'src/users/dto/loginDto.dto';
 
 @Injectable()
 export class AuthenticationService {
@@ -61,16 +62,75 @@ export class AuthenticationService {
       });
 
       const accessToken = await this.generateToken(user);
-      return { status: 'Created User Successfully', data: { accessToken } };
+      return {
+        status: 'success',
+        message: 'Created User Successfully',
+        data: { accessToken },
+      };
     } catch (error) {
-      console.error('Error creating user:', error); // Log the error for debugging
       if (error instanceof UnauthorizedException) {
-        throw error; // Re-throw the UnauthorizedException
+        throw new UnauthorizedException({
+          status: 'error',
+          data: null,
+          message: error.message || 'Authentication failed',
+        });
       }
+
       if (error instanceof ConflictException) {
-        throw error;
+        throw new ConflictException({
+          status: 'error',
+          data: null,
+          message: 'User already exists',
+        });
       }
-      throw new UnauthorizedException('Failed to create user'); // Generic error message for other errors
+
+      throw new UnauthorizedException({
+        status: 'error',
+        data: null,
+        message: 'Failed to create user',
+      });
+    }
+  }
+
+  async login(loginDto: LoginDto) {
+    try {
+      const { email, password } = loginDto;
+
+      const user = await this.userModel.findOne({ email });
+      if (!user) {
+        throw new UnauthorizedException('The email does not exist.');
+      }
+
+      const isPasswordValid = await this.hashingService.compare(
+        password,
+        user.password,
+      );
+      if (!isPasswordValid) {
+        throw new UnauthorizedException(
+          'Incorrect Password. Please input the correct password and try again',
+        );
+      }
+
+      const accessToken = await this.generateToken(user);
+      return {
+        status: 'success',
+        message: 'Login Successful',
+        data: { accessToken },
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException({
+          status: 'error',
+          data: null,
+          message: error.message || 'Authentication failed',
+        });
+      }
+
+      throw new UnauthorizedException({
+        status: 'error',
+        data: null,
+        message: 'Failed to login',
+      });
     }
   }
 
