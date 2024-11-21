@@ -16,7 +16,7 @@ export class InventoryService {
     private mailService: MailService,
   ) {}
 
-  async checkStockLevels(): Promise<{
+  async checkStockLevels(email: string): Promise<{
     summary: {
       totalProducts: number;
       lowStockCount: number;
@@ -50,7 +50,7 @@ export class InventoryService {
             if (product.stock < optimumStock) {
               try {
                 // Only send email for low stock
-                await this.sendAlert(product, optimumStock);
+                await this.sendAlert(product, optimumStock, email);
                 stockStatus.push({
                   productName: product.name,
                   status: 'LOW',
@@ -243,7 +243,7 @@ export class InventoryService {
     }
   }
 
-  async checkStockLevelsNoId(productData: SimpleProduct) {
+  async checkStockLevelsNoId(productData: SimpleProduct, email: string) {
     try {
       const optimumStock = await this.getOptimumStockNoDB({
         name: productData.name,
@@ -269,7 +269,7 @@ export class InventoryService {
             currentStock: productData.stock,
             optimalStock: optimumStock,
             sku: 'N/A',
-            recipients: ['adedejiosvaldo@gmail.com'],
+            recipients: [email],
           });
         } catch (emailError) {
           this.logger.error(
@@ -313,13 +313,14 @@ export class InventoryService {
   private async sendAlert(
     product: Product,
     optimumStock: number,
+    email: string,
   ): Promise<void> {
     await this.mailService.sendLowStockAlert({
       productName: product.name,
       currentStock: product.stock,
       optimalStock: optimumStock,
       sku: product.id,
-      recipients: ['adedejiosvaldo@gmail.com'],
+      recipients: [email],
     });
   }
 
@@ -343,7 +344,7 @@ export class InventoryService {
 
   //
 
-  async getProductOptimumStock(productId: string) {
+  async getProductOptimumStock(productId: string, email: string) {
     try {
       const product = await this.inventoryModel.findById(productId);
       if (!product) {
@@ -357,11 +358,12 @@ export class InventoryService {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
+      const user = product.user_id;
 
       // Check if stock is low and send alert
       if (product.stock < optimumStock) {
         try {
-          await this.sendAlert(product, optimumStock);
+          await this.sendAlert(product, optimumStock, email);
         } catch (emailError) {
           this.logger.error(
             `Failed to send low stock alert for ${product.name}:`,
@@ -397,39 +399,6 @@ export class InventoryService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-  }
-
-  async updateProductStock(
-    productId: string,
-    updateData: { quantity: number; type: 'add' | 'remove' },
-  ) {
-    const product = await this.inventoryModel.findById(productId);
-    if (!product) {
-      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
-    }
-
-    const newStock =
-      updateData.type === 'add'
-        ? product.currentStock + updateData.quantity
-        : product.currentStock - updateData.quantity;
-
-    if (newStock < 0) {
-      throw new HttpException('Insufficient stock', HttpStatus.BAD_REQUEST);
-    }
-
-    product.currentStock = newStock;
-    await product.save();
-
-    const optimumStock = await this.getOptimumStock(product);
-    if (newStock < optimumStock) {
-      await this.sendAlert(product, optimumStock);
-    }
-
-    return {
-      status: 'success',
-      message: 'Stock updated successfully',
-      newStock,
-    };
   }
 
   async getAllStockLevels() {

@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { SimpleProduct } from './dto/simple.dto';
+import { ActiveUser } from 'src/iam/authentication/decorators/ActiveUser.decorator';
+import { ActiveUserDTO } from 'src/iam/authentication/dto/activeUser.dto';
 
 @Controller('inventory')
 export class InventoryController {
@@ -20,11 +22,12 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   // Trigger manual stock check
+
   @HttpCode(HttpStatus.OK)
   @Post('check-stock')
-  async checkStock() {
+  async checkStock(@ActiveUser() user: ActiveUserDTO) {
     try {
-      const result = await this.inventoryService.checkStockLevels();
+      const result = await this.inventoryService.checkStockLevels(user.email);
       return {
         ...result,
       };
@@ -38,9 +41,15 @@ export class InventoryController {
 
   @HttpCode(HttpStatus.OK)
   @Post('check-product')
-  async checkStockNoId(@Body() productData: SimpleProduct) {
+  async checkStockNoId(
+    @Body() productData: SimpleProduct,
+    @ActiveUser() user: ActiveUserDTO,
+  ) {
     try {
-      return this.inventoryService.checkStockLevelsNoId(productData);
+      return this.inventoryService.checkStockLevelsNoId(
+        productData,
+        user.email,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to check stock for product ${productData?.name}: ${error.message}`,
@@ -58,10 +67,15 @@ export class InventoryController {
   }
   // Get optimum stock for a specific product
   @Get('optimum-stock/:productId')
-  async getOptimumStock(@Param('productId') productId: string) {
+  async getOptimumStock(
+    @Param('productId') productId: string,
+    @ActiveUser() user: ActiveUserDTO,
+  ) {
     try {
-      const result =
-        await this.inventoryService.getProductOptimumStock(productId);
+      const result = await this.inventoryService.getProductOptimumStock(
+        productId,
+        user.email,
+      );
       return result;
     } catch (error) {
       throw new HttpException(
