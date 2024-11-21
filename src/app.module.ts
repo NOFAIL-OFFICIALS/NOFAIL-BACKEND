@@ -9,6 +9,7 @@ import { ProductModule } from './product/product.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { MailModule } from './utils/mail/mail.module';
+import { ShopModule } from './shop/shop.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,6 +22,7 @@ import { MailModule } from './utils/mail/mail.module';
     ChatbotModule,
     InventoryModule,
     MailModule,
+    ShopModule,
   ],
 
   controllers: [AppController],
