@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { IamModule } from './iam/iam.module';
 import { ProductModule } from './product/product.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { MailModule } from './utils/mail/mail.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +19,8 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     IamModule,
     ProductModule,
     ChatbotModule,
+    InventoryModule,
+    MailModule,
   ],
 
   controllers: [AppController],

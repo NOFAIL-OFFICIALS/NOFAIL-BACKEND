@@ -33,6 +33,9 @@ export class Product extends Document {
 
   @Prop({ unique: true })
   code: string;
+
+  @Prop({ required: false, default: 0 })
+  currentStock: number;
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);
@@ -51,6 +54,7 @@ productSchema.pre('save', async function (next) {
     if (lastProduct) {
       // Extract the number from the last code and increment it
       const lastNumber = parseInt(lastProduct.code.replace('PROD', ''));
+      this.currentStock = this.stock;
       this.code = `PROD${String(lastNumber + 1)}`;
     } else {
       this.code = 'PROD1';
